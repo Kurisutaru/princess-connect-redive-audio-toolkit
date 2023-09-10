@@ -1,6 +1,6 @@
 # Princess Connect Re:Dive! Audio Toolkit
 
-**Version 0.0.0.1 Final**
+**Version 0.0.1 Final**
 
 © Kurisutaru 2020
 
@@ -16,15 +16,15 @@ It produces .awb with .acb files respectively.
 
 You can use an audio player (usually foobar2k) with the VGMStream component to listen to the audio.
 
-**Version 0.0.0.1 Final (no pun intended, unless I mess up in a certain case)** and will be open source on Gitlab and Github.
+**Version 0.0.1 Final (no pun intended, unless I mess up in a certain case)** and will be open source on Gitlab and Github.
 
-*Note: Using .NET Core 3.1 CLR with Portable Runtime, so you don't need to install .NET Core Runtime, but the file size is quite large (sorry for that) unless you want to build from VS2019.*
+~~*Note: Using .NET Core 3.1 CLR with Portable Runtime, so you don't need to install .NET Core Runtime, but the file size is quite large (sorry for that) unless you want to build from VS2019.*~~
 
 ## Updates 2023:
 
 - Bumped up to .NET 6.
 - Updated Dependencies.
-- Detect Default Installation path of Purikone DMM (It's always in C:\User\Your User\AppData\LocalLow\Cygames\PrincessConnectReDive).
+- Detect Default Installation path of Purikone DMM (It's always in `C:\User\Your User\AppData\LocalLow\Cygames\PrincessConnectReDive`).
 
 ## Instruction Usage:
 
