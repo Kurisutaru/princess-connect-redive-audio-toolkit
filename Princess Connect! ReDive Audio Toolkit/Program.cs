@@ -4,7 +4,10 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
+using System.Threading;
+using static System.Environment;
 
 namespace Princess_Connect_ReDive_Audio_Toolkit
 {
@@ -13,8 +16,11 @@ namespace Princess_Connect_ReDive_Audio_Toolkit
 		private static void Main(string[] args)
 		{
 			Variable variable = new Variable();
-
-			WriteLine(@" ________   ___  ___   ________   ___   ___  __     ________   ________    _______      ");
+			//Preset get Purikone Folder at LocalLow for DMM
+            Guid localLowId = new Guid("A520A1A4-1780-4FF6-BD18-167343C5AF16");
+			String localLowFolder = Path.Combine(GetKnownFolderPath(localLowId), "CyGames", "PrincessConnectReDive");
+			
+            WriteLine(@" ________   ___  ___   ________   ___   ___  __     ________   ________    _______      ");
 			WriteLine(@"|\   __  \ |\  \|\  \ |\   __  \ |\  \ |\  \|\  \  |\   __  \ |\   ___  \ |\  ___ \     ");
 			WriteLine(@"\ \  \|\  \\ \  \\\  \\ \  \|\  \\ \  \\ \  \/  /|_\ \  \|\  \\ \  \\ \  \\ \   __/|    ");
 			WriteLine(@" \ \   ____\\ \  \\\  \\ \   _  _\\ \  \\ \   ___  \\ \  \\\  \\ \  \\ \  \\ \  \_|/__  ");
@@ -27,8 +33,15 @@ namespace Princess_Connect_ReDive_Audio_Toolkit
 			WriteLine("©Kurisutaru 2020");
 			WriteLine("https://www.kurisutaru.net/");
 			WriteLine("────────────────────────────────────────────────────────────────────────────────────────────────────");
-			Write("Please input DMM Data Folder path : ");
+            WriteLine($"Detected Folder Path : {localLowFolder}");
+            WriteLine("If you feel those path were correct, just press enter");
+            Write($"Please input DMM Data Folder path : ");
 			string tmpPath = ReadLine();
+
+			if(String.IsNullOrEmpty(tmpPath))
+			{
+				tmpPath = localLowFolder;
+            }
 
 			if (!Directory.Exists(tmpPath))
 			{
@@ -46,7 +59,7 @@ namespace Princess_Connect_ReDive_Audio_Toolkit
 
 			try
 			{
-				WriteLine("- Processing Step 1. Hashing files -");
+				WriteLine(" - Processing Step 1. Hashing files -");
 
 				IEnumerable<string> files = Directory.EnumerateFiles(variable.bgmFolder, "*", SearchOption.TopDirectoryOnly);
 
@@ -77,6 +90,13 @@ namespace Princess_Connect_ReDive_Audio_Toolkit
 				WriteLine("- Processing Step 2. Getting Database data -");
 
 				WriteLine("- Copying database file -");
+
+				if(File.Exists(Path.Combine(variable.dmmDataFolder, "manifest.kuri.db")))
+				{
+					Thread.Sleep(1);
+					File.Delete(Path.Combine(variable.dmmDataFolder, "manifest.kuri.db"));
+					Thread.Sleep(1);
+				}
 
 				File.Copy(Path.Combine(variable.dmmDataFolder, "manifest.db"), Path.Combine(variable.dmmDataFolder, "manifest.kuri.db"), true);
 
@@ -124,15 +144,15 @@ namespace Princess_Connect_ReDive_Audio_Toolkit
 
 				variable.extractFolder = Path.Combine(variable.mainDirectory, "kuri");
 
-				//Lamba Dropped because I'm fking dumb with complex stuff lmao, see replacement below v
-				//IEnumerable<MergedItem> result = variable.SqliteItems
-				//	.Select(x => new MergedItem
-				//	{
-				//		DatabaseFilename = x.DatabaseFilename,
-				//		Hash = x.Hash
-				//	});
+                //Lamba Dropped because I'm fking dumb with complex stuff lmao, see replacement below v
+                //IEnumerable<MergedItem> result = variable.SqliteItems
+                //	.Select(x => new MergedItem
+                //	{
+                //		DatabaseFilename = x.DatabaseFilename,
+                //		Hash = x.Hash
+                //	});
 
-				IEnumerable<MergedItem> mergedItems = from sqliteItem in variable.SqliteItems
+                List<MergedItem> mergedItems = (from sqliteItem in variable.SqliteItems
 																							join hashItem in variable.hashedItems
 																							on sqliteItem.Hash equals hashItem.Hash
 																							select
@@ -141,16 +161,18 @@ namespace Princess_Connect_ReDive_Audio_Toolkit
 																								DatabaseFilename = sqliteItem.DatabaseFilename,
 																								Filename = hashItem.Filename,
 																								Hash = hashItem.Hash
-																							};
+																							}).ToList();
 
-				if (Directory.Exists(Path.Combine(variable.extractFolder)))
+                if (Directory.Exists(Path.Combine(variable.extractFolder)))
 				{
-					Directory.Delete(Path.Combine(variable.extractFolder));
+					Directory.Delete(Path.Combine(variable.extractFolder), true);
 				}
+
+				Thread.Sleep(1);
 
 				Directory.CreateDirectory(Path.Combine(variable.extractFolder));
 
-				foreach (MergedItem item in mergedItems)
+                foreach (MergedItem item in mergedItems)
 				{
 					File.Copy(Path.Combine(variable.bgmFolder, item.Filename), Path.Combine(variable.extractFolder, item.DatabaseFilename), true);
 					WriteLine($"Writing {item.Filename} into {item.DatabaseFilename}");
@@ -158,7 +180,7 @@ namespace Princess_Connect_ReDive_Audio_Toolkit
 			}
 			catch (Exception e)
 			{
-				WriteLine($"Crashing at Step 2 with Exception : {e.Message}. Ask Kuri for more info.");
+				WriteLine($"Crashing at Step 3 with Exception : {e.Message}. Ask Kuri for more info.");
 			}
 
 			#endregion Processing Step 3. Rename Files
@@ -205,7 +227,27 @@ namespace Princess_Connect_ReDive_Audio_Toolkit
 			return Console.ReadLine();
 		}
 
-		#endregion Utilities
+        public static string GetKnownFolderPath(Guid knownFolderId)
+        {
+            IntPtr pszPath = IntPtr.Zero;
+            try
+            {
+                int hr = SHGetKnownFolderPath(knownFolderId, 0, IntPtr.Zero, out pszPath);
+                if (hr >= 0)
+                    return Marshal.PtrToStringAuto(pszPath);
+                throw Marshal.GetExceptionForHR(hr);
+            }
+            finally
+            {
+                if (pszPath != IntPtr.Zero)
+                    Marshal.FreeCoTaskMem(pszPath);
+            }
+        }
 
-	}
+        [DllImport("shell32.dll")]
+        static extern int SHGetKnownFolderPath([MarshalAs(UnmanagedType.LPStruct)] Guid rfid, uint dwFlags, IntPtr hToken, out IntPtr pszPath);
+
+        #endregion Utilities
+
+    }
 }
